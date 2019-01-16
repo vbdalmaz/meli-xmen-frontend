@@ -4,16 +4,13 @@ import ButtonCustom from './components/ButtonCustom';
 import PubSub from 'pubsub-js'
 import ErrorHandler from './components/ErrorHandler'
 import LabelCustom from './components/LabelCustom';
-
-let urlApi = "http://ec2-54-233-234-116.sa-east-1.compute.amazonaws.com:8080/melixmen/dna";
-let urlApiGetDnas = urlApi + "/all";
-let urlApiPostTestDnas = urlApi + "/mutant";
+import Constants from './components/Constants';
 
 class DNAForm extends Component {
     
     constructor(){
         super();
-        this.state = {list : [], dna : "",msg : ""} 
+        this.state = {list : [], dna : "",msg : ""}
     }
 
     listenOnChange(nameInput, evento){
@@ -21,26 +18,33 @@ class DNAForm extends Component {
     }
 
     handlerDNA(response){
-        if(response.ok){
+        this.setState({msg: ""});
+
+        if(this.state.dna === ""){
+            this.setState({msg: "DNA Field cannot be blank"});
+        } else if(response.ok){
             this.setState({msg: "IT IS A MUTANT"})
             return response;
         }else if(response.status === 403){
             this.setState({msg: "IT IS A HUMAN"}) 
             return response;
         }
+        if(response){
+            response.json().then(bodyAsJson => {
+                console.log(bodyAsJson);
+                this.setState({msg: bodyAsJson.message});  
+            });
+        } 
         else{
-                response.json()
-                .then(responseAsJson => {
-                    new ErrorHandler().manageError(responseAsJson)});
-                    throw Error("Não foi possível receber os dados da api "+ urlApiPostTestDnas); 
-        }
+            throw Error("Error sendind data to api "+ this.props.urlApiPostTestDnas);
+        } 
     }
 
     testDna(evento){
         evento.preventDefault();
         PubSub.publish('clean-errors');                  
 
-          return fetch(urlApiPostTestDnas ,{
+          return fetch(this.props.urlApiPostTestDnas ,{
                   method: 'POST',
                   body: JSON.stringify({'Dna': this.state.dna.split(',')}),
                   headers:{
@@ -108,11 +112,13 @@ class DNATable extends Component {
 export default class DNABox extends Component {
     constructor(){
         super();
-        this.state = {list : []} 
+        this.state = {list : []}
+        this.urlApiPostTestDnas = Constants.getUrlApiPostTestDnas();
+        this.urlApiGetDnas = Constants.getUrlApiGetDnas(); 
     }
 
     componentDidMount(){
-        fetch(urlApiGetDnas)
+        fetch(this.urlApiGetDnas)
                 .then(response => response.json())
                 .then(responseAsJson => {
                     this.setState({list: responseAsJson});
@@ -122,7 +128,7 @@ export default class DNABox extends Component {
                     })}) 
                 .catch(erro => {
                   console.log(erro);
-                  throw Error("Não foi possível enviar os dados  "+ urlApiGetDnas); 
+                  throw Error("Não foi possível receber os dados  "+ this.urlApiGetDnas); 
                 });
     }
 
@@ -133,9 +139,9 @@ export default class DNABox extends Component {
                 <h1>Test of DNA</h1>
             </div>
             <div className="header pure-form pure-form-aligned">
-                <DNAForm/>
+                <DNAForm urlApiPostTestDnas = {this.urlApiPostTestDnas}  />
                 <br /> 
-                <DNATable list={this.state.list}  />
+                <DNATable list={this.state.list}/>
             </div>
         </div>  
     )}
