@@ -1,14 +1,13 @@
 import React, {Component} from 'react';
 import PubSub from 'pubsub-js'
 import ErrorHandler from './components/ErrorHandler'
-
-let urlApi = "http://ec2-54-233-234-116.sa-east-1.compute.amazonaws.com:8080/melixmen/dna";
-let urlApiGetStats = urlApi + "/stats"
+import Constants from './components/Constants';
 
 export default class Stats extends Component{
     constructor(){
         super();
-        this.state = {count_human_dna: 0, count_mutant_dna : 0, ratio: 0} 
+        this.state = {count_human_dna: 0, count_mutant_dna : 0, ratio: 0};
+        this.urlApiGetStats = Constants.getUrlApiGetStats();  
     }
 
     handler(response){
@@ -17,14 +16,13 @@ export default class Stats extends Component{
         }else{
             if(response.status === 400){
                 response.json().then(responseAsJson => {new ErrorHandler().manageError(responseAsJson)});
-            
-                throw Error("Não foi possível receber os dados da api "+ urlApiGetStats); 
+                throw Error("Error retriving data from api "+ this.urlApiGetStats); 
             }
         }
     }
 
     componentDidMount(){
-        fetch(urlApiGetStats)
+        fetch(this.urlApiGetStats)
         .then(response => this.handler(response))
         .then(response => response.json())
         .then(dados => {
@@ -36,7 +34,7 @@ export default class Stats extends Component{
                 })}) 
         .catch(erro => {
             console.log(erro);
-            throw Error("Não foi possível receber os dados  "+ erro + urlApiGetStats); 
+            throw Error("Error retriving data from api  "+ erro + this.urlApiGetStats); 
         });
     }
 
